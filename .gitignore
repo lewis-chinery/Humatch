@@ -1,0 +1,13 @@
+# venv
+.humatch_venv/*
+build/*
+*egg-info/*
+
+# cnn weights
+Humatch/trained_models/*
+
+# germline likeness npy files
+Humatch/germline_likeness_lookup_arrays/*
+
+# data
+data/*
