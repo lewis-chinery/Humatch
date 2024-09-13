@@ -3,16 +3,38 @@ from Humatch.utils import HEAVY_V_GENE_CLASSES, LIGHT_V_GENE_CLASSES, PAIRED_CLA
 from Humatch.dataset import CustomDataGenerator
 
 
-def predict_from_list_of_seq_strs(list_of_seq_strs, model, batch_size=1024, CNN_verbose=0):
+def predict_from_list_of_seq_strs(list_of_seq_strs, model, batch_size=16384, CNN_verbose=0, num_cpus=None):
     '''
     Predict from a list of sequence strings using a model
     :param list_of_seq_strs: list of str sequences
     :param model: model e.g. trained CNN
     :param batch_size: int batch size for prediction
+    :param CNN_verbose: int verbose level for CNN
+    :param num_cpus: int number of cpus to use when encoding sequences
     :returns: ndarray of predictions (# seqs, # classes)
     '''
-    test_generator = CustomDataGenerator(list_of_seq_strs, batch_size=batch_size)
+    test_generator = CustomDataGenerator(list_of_seq_strs, batch_size=batch_size, num_cpus=num_cpus)
     return model.predict(test_generator, verbose=CNN_verbose)
+
+
+def get_predictions_for_target_class(list_of_seq_strs, model, target_class, classifier_type,
+                                     batch_size=16384, CNN_verbose=0, num_cpus=None):
+    '''
+    Get the prediction for a target class
+    :param list_of_seq_strs: list of str sequences
+    :param model: model e.g. trained CNN
+    :param target_class: str target class
+    :param classifier_type: str type of classifier heavy | light | paired
+    :param batch_size: int batch size for prediction
+    :param CNN_verbose: int verbose level for CNN
+    :param num_cpus: int number of cpus to use when encoding sequences
+    :returns: ndarray of predictions (# seqs,)
+    '''
+    predictions = predict_from_list_of_seq_strs(list_of_seq_strs, model, batch_size=batch_size,
+                                                CNN_verbose=CNN_verbose, num_cpus=num_cpus)
+    class_strs = HEAVY_V_GENE_CLASSES if classifier_type == "heavy" else LIGHT_V_GENE_CLASSES if classifier_type == "light" else PAIRED_CLASSES
+    target_idx = class_strs.index(target_class)
+    return predictions[:, target_idx]
 
 
 def get_idx_of_max_prob(predictions, exclude_neg_class=True):

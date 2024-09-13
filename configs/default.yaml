@@ -1,0 +1,23 @@
+# global
+max_edit:   60
+noise:      0.01
+num_cpus:   16
+
+# heavy
+GL_target_score_H:            0.40
+GL_allow_CDR_mutations_H:     False
+GL_fixed_imgt_positions_H:    []
+CNN_target_score_H:           0.95
+CNN_allow_CDR_mutations_H:    False
+CNN_fixed_imgt_positions_H:   []
+
+# light
+GL_target_score_L:            0.40
+GL_allow_CDR_mutations_L:     False
+GL_fixed_imgt_positions_L:    []
+CNN_target_score_L:           0.95
+CNN_allow_CDR_mutations_L:    False
+CNN_fixed_imgt_positions_L:   []
+
+# paired
+CNN_target_score_P:           0.95

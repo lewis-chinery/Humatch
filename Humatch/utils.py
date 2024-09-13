@@ -1,4 +1,6 @@
-import numpy as np
+import os
+import tensorflow as tf
+import multiprocessing as mp
 
 # from https://github.com/oxpig/kasearch/blob/main/kasearch/canonical_alignment.py
 CANONICAL_NUMBERING = ["1 ", "2 ", 
@@ -97,3 +99,80 @@ def seq_to_2D_kidera(seq):
         kidera_AA = AA_to_kidera(AA)
         kidera_seq.append(kidera_AA)
     return kidera_seq
+
+
+def get_ordered_AA_one_letter_codes(extra_chars=["-"]):
+    '''
+    Get list of amino acid one letter codes in alphabetical order
+    '''
+    return ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L',
+            'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y'] + extra_chars
+
+
+def get_indices_of_selected_imgt_positions_in_canonical_numbering(selected_imgt_positions):
+    indices = []
+    for i in selected_imgt_positions:
+        try:
+            indices.append(CANONICAL_NUMBERING.index(i))
+        except ValueError:
+            raise ValueError(f"Warning: position '{i}' not found in canonical numbering.\n\
+--> IMGT positions must be given as strings with a space after the number\n\
+    if no insertion code is present e.g. '27 ' or '33A'")
+    return indices
+
+
+def get_list_indices_between_two_elements(lst, start, end):
+    '''
+    Get indices between two elements in a list
+    :param lst: list, list of elements
+    :param start: str, start element
+    :param end: str, end element
+    :returns: list, indices between start and end elements (inclusive)
+    '''
+    start_idx = lst.index(start)
+    end_idx = lst.index(end)
+    return list(range(start_idx, end_idx+1))
+
+
+def get_CDR_loop_indices():
+    '''
+    Get indices of CDR loops in a numbering system
+    :param numbering: list, numbering system
+    :param paired: bool, if need to get indices for both heavy and light chains
+    :param chain_sep_pad_len: int, length of padding between heavy and light chains
+    :returns: list, indices of CDR loops
+    '''
+    cdr1_indices = get_list_indices_between_two_elements(CANONICAL_NUMBERING, CDR1_start, CDR1_end)
+    cdr2_indices = get_list_indices_between_two_elements(CANONICAL_NUMBERING, CDR2_start, CDR2_end)
+    cdr3_indices = get_list_indices_between_two_elements(CANONICAL_NUMBERING, CDR3_start, CDR3_end)
+    return cdr1_indices + cdr2_indices + cdr3_indices
+
+
+def get_edit_distance(original_seq, mutated_seq):
+    '''
+    Get number of mutations seq is from original
+    Requires seqs to be of same length
+
+    :param original_seq: str of AAs e.g. Trastuzumab's H3
+    :param mutated_seq: str of AAs of mutated seq
+    :returns: int of number of mutations
+    '''
+    edit_distance = 0
+    for idx, original_AA in enumerate(original_seq):
+        if mutated_seq[idx] != original_AA:
+            edit_distance += 1  
+    return edit_distance
+
+
+def set_num_cpus(num_cpus=None):
+    '''
+    Set environment variables to limit the number of CPUs
+    Note - speed is not directly proportional to number of CPUs
+    :param num_cpus: int, number of CPUs
+    '''
+    num_cpus = mp.cpu_count() if num_cpus is None else num_cpus
+    os.environ["OMP_NUM_THREADS"] = str(num_cpus)
+    os.environ["TF_NUM_INTRAOP_THREADS"] = str(num_cpus)
+    os.environ["TF_NUM_INTEROP_THREADS"] = str(num_cpus)
+    tf.config.threading.set_intra_op_parallelism_threads(num_cpus)
+    tf.config.threading.set_inter_op_parallelism_threads(num_cpus)

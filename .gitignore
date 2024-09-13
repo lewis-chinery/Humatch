@@ -11,3 +11,5 @@ Humatch/germline_likeness_lookup_arrays/*
 
 # data
 data/*
+!data/example.csv
+!data/example_prealigned.csv

@@ -32,3 +32,20 @@ def plot_example_boxplot(df, is_human_col="is_human",
     plt.legend(title="Human", loc='center left', bbox_to_anchor=(1, 0.5), fontsize=fontsize)
 
     plt.show()
+
+
+def highlight_differnces_between_two_seqs(seq1, seq2):
+    '''
+    Clearly highlight mutations between two sequences
+    Print the the two sequences either before/after the function call to see the differences
+    :param seq1: str, sequence 1
+    :param seq2: str, sequence 2
+    :returns: str, sequence with mutations highlighted
+    '''
+    diff = ""
+    for i in range(len(seq1)):
+        if seq1[i] != seq2[i]:
+            diff += seq2[i]
+        else:
+            diff += " "
+    return diff

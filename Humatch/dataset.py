@@ -12,13 +12,15 @@ class CustomDataGenerator(tf.keras.utils.Sequence):
 
     :param seqs: list of aligned sequence strings
     :param batch_size: int, batch size for training
+    :param num_cpus: int, number of cpus to use when encoding sequences
     '''
-    def __init__(self, seqs, batch_size=1024):
+    def __init__(self, seqs, batch_size=16384, num_cpus=None):
         '''
         '''
         super().__init__()
         self.seqs = seqs
         self.batch_size = batch_size
+        self.num_cpus = num_cpus
 
     def __len__(self):
         '''
@@ -33,17 +35,19 @@ class CustomDataGenerator(tf.keras.utils.Sequence):
         low_idx = index*self.batch_size
         high_idx = min((index+1)*self.batch_size, len(self.seqs))
         batch_seqs = self.seqs[low_idx:high_idx]
-        return get_X_from_list_of_seq_strs(batch_seqs)
+        return get_X_from_list_of_seq_strs(batch_seqs, self.num_cpus)
     
 
-def get_X_from_list_of_seq_strs(seq_strs):
+def get_X_from_list_of_seq_strs(seq_strs, num_cpus=None):
     '''
     Get Kidera encoded ndarrays, X, for a list of sequences
     This array is required for CNN input
 
     :param seq_strs: list of str sequences
+    :param num_cpus: int, number of cpus to use when encoding sequences
     :returns: ndarray of Kidera encoded (# seqs, 200, 10)
     '''
-    with mp.Pool(mp.cpu_count()) as pool:
+    num_cpus = mp.cpu_count() if num_cpus is None else num_cpus
+    with mp.Pool(num_cpus) as pool:
         X = np.asarray(pool.map(seq_to_2D_kidera, seq_strs))
     return X
