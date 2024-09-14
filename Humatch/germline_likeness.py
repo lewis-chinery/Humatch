@@ -6,10 +6,9 @@ from Humatch.utils import (
     get_indices_of_selected_imgt_positions_in_canonical_numbering
     )
 
-# gl arrays not added to compiled env - get back to install dir to find arrays
+# gl arrays added to compiled env package_data
 HUMATCH_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
-HUMATCH_CODE_DIR = HUMATCH_CODE_DIR.split("Humatch")[0]
-GL_DIR = os.path.join(HUMATCH_CODE_DIR, "Humatch", "Humatch", "germline_likeness_lookup_arrays")
+GL_DIR = os.path.join(HUMATCH_CODE_DIR, "germline_likeness_lookup_arrays")
 
 
 def mutate_seq_to_match_germline_likeness(seq, target_gene, target_score, allow_CDR_mutations=False,

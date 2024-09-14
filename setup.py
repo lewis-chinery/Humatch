@@ -8,6 +8,8 @@ setup(
     maintainer='Lewis Chinery',
     long_description_content_type='text/markdown',
     maintainer_email='lewis.chinery@dtc.ox.ac.uk',
+    include_package_data=True,
+    package_data={'': ['trained_models/*', 'germline_likeness_lookup_arrays/*']},
     packages=find_packages(include=('Humatch', 'Humatch.*')),
     install_requires=[
         'numpy',

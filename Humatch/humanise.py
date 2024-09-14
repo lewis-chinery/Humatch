@@ -19,7 +19,7 @@ from Humatch.plot import highlight_differnces_between_two_seqs
 
 
 def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
-             pad="----------", verbose=False, germline_likeness_lookup_arrays_dir=GL_DIR):
+             pad="----------", verbose=False):
     '''
     Jointly humanise heavy and light chain sequences to match germline likeness and CNN predictions
 
@@ -37,6 +37,10 @@ def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
         target_gene_L = config["target_gene_L"]
     except KeyError:
         target_gene_L = get_target_gene_if_none_provided(light_seq, cnn_light, "light")
+    try:
+        germline_likeness_lookup_arrays_dir = config["germline_likeness_lookup_arrays_dir"]
+    except KeyError:
+        germline_likeness_lookup_arrays_dir = GL_DIR
 
     # make top germline mutations to match germline likeness
     if verbose: print(f"Matching germilne likeness for {target_gene_H} and {target_gene_L}\n")

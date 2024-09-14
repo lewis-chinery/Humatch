@@ -3,6 +3,14 @@ from tensorflow import keras
 from Humatch.utils import HEAVY_V_GENE_CLASSES, LIGHT_V_GENE_CLASSES, PAIRED_CLASSES
 
 
+# cnn weights added to compiled env package_data
+HUMATCH_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
+CNN_WEIGHTS_DIR = os.path.join(HUMATCH_CODE_DIR, "trained_models")
+HEAVY_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "heavy.weights.h5")
+LIGHT_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "light.weights.h5")
+PAIRED_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "paired.weights.h5")
+
+
 # default params
 PARAMS = [['CONV', 40, 10, 1],
           ['DROP', 0.2],

@@ -5,9 +5,11 @@ build/*
 
 # cnn weights
 Humatch/trained_models/*
+!Humatch/trained_models/.gitkeep
 
 # germline likeness npy files
 Humatch/germline_likeness_lookup_arrays/*
+!Humatch/germline_likeness_lookup_arrays/.gitkeep
 
 # data
 data/*
