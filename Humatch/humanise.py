@@ -1,4 +1,18 @@
+import os
+import sys
+# supress warnings about having no GPU
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+import logging
+# suppress warnings about tf retracing
+tf.get_logger().setLevel('ERROR')
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
 import numpy as np
+import pandas as pd
+import argparse
+import yaml
+
 from Humatch.classify import (
     predict_from_list_of_seq_strs,
     get_class_and_score_of_max_predictions_only,
@@ -13,9 +27,16 @@ from Humatch.utils import (
     get_ordered_AA_one_letter_codes,
     get_CDR_loop_indices,
     get_indices_of_selected_imgt_positions_in_canonical_numbering,
-    get_edit_distance
+    get_edit_distance,
+    CANONICAL_NUMBERING
 )
 from Humatch.plot import highlight_differnces_between_two_seqs
+from Humatch.align import get_padded_seq, strip_padding_from_seq
+from Humatch.model import load_cnn, HEAVY_WEIGHTS, LIGHT_WEIGHTS, PAIRED_WEIGHTS
+
+# default config added to compiled env package_data
+HUMATCH_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG = os.path.join(HUMATCH_CODE_DIR, "configs", "default.yaml")
 
 
 def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
@@ -43,7 +64,7 @@ def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
         germline_likeness_lookup_arrays_dir = GL_DIR
 
     # make top germline mutations to match germline likeness
-    if verbose: print(f"Matching germilne likeness for {target_gene_H} and {target_gene_L}\n")
+    if verbose: print(f"Matching germline likeness for {target_gene_H} and {target_gene_L}")
     best_seq_H = mutate_seq_to_match_germline_likeness(heavy_seq, target_gene_H, config["GL_target_score_H"],
                                                        allow_CDR_mutations=config["GL_allow_CDR_mutations_H"],
                                                        fixed_imgt_positions=config["GL_fixed_imgt_positions_H"],
@@ -66,9 +87,10 @@ def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
     all_total_preds = [max_pred_H + max_pred_L + max_pred_P]
     humanisation_failed = False
     i = 0
+    if verbose: print(f"Designing and scoring single-point variants")
     while (max_pred_H < config["CNN_target_score_H"]) or (max_pred_L < config["CNN_target_score_L"]) or (max_pred_P < config["CNN_target_score_P"]):
         i += 1
-        if verbose: print(f"It. #{i}\tCNN-H: {max_pred_H:.2f},\tCNN-L: {max_pred_L:.2f},\tCNN-P: {max_pred_P:.2f},\tEdit: {edit}")
+        if verbose: print(f"\tIt. #{i}\tCNN-H: {max_pred_H:.2f},\tCNN-L: {max_pred_L:.2f},\tCNN-P: {max_pred_P:.2f},\tEdit: {edit}")
         
         # get single point variants
         variants_H = get_all_single_point_variants(best_seq_H, config["CNN_allow_CDR_mutations_H"], config["CNN_fixed_imgt_positions_H"])
@@ -115,12 +137,12 @@ def humanise(heavy_seq, light_seq, cnn_heavy, cnn_light, cnn_paired, config,
         max_pred_H, max_pred_L, max_pred_P = all_cnn_preds[best_idx]
         best_seq_P = best_seq_H + pad + best_seq_L
         edit = get_edit_distance(precursor_seq_P, best_seq_P)
+        if verbose: print(f"Humanisation failed")
 
-    if verbose:
-        print(f"\nHeavy\n{heavy_seq}\n{highlight_differnces_between_two_seqs(heavy_seq, best_seq_H)}\n{best_seq_H}")
-        print(f"\nLight\n{light_seq}\n{highlight_differnces_between_two_seqs(light_seq, best_seq_L)}\n{best_seq_L}\n")
+    if verbose: print(f"Humanised sequences:\n\t{best_seq_H.replace('-','')}\n\t{best_seq_L.replace('-','')}")
 
     return {"Humatch_H": best_seq_H, "Humatch_L": best_seq_L, "Edit": edit,
+            "HV": target_gene_H, "LV": target_gene_L,
             "CNN_H": max_pred_H, "CNN_L": max_pred_L, "CNN_P": max_pred_P}
 
 
@@ -346,3 +368,103 @@ def scale_predictions_by_observed_frequency(predictions, scaling_factors, noise_
     # add noise - higher noise pushes pos and neg net predictions further from 0
     scaling_factors = np.array(scaling_factors) + noise_factor
     return predictions * scaling_factors
+
+
+def command_line_interface():
+    description="""
+    Humatch - Humanise
+                                                           @
+    Author: Lewis Chinery               )  __QQ    -->    /||\\
+    Supervisor: Charlotte M. Deane     (__(_)_">           /\\
+    Contact: opig@stats.ox.ac.uk                          
+    """
+    parser = argparse.ArgumentParser(prog="Humatch-humanise", description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("-H", "--VH", help="Heavy chain amino acid sequence", default=None)
+    parser.add_argument("-L", "--VL", help="Light chain amino acid sequence", default=None)
+    parser.add_argument("-i", "--input", help="Path to csv with antibody sequences", default=None)
+    parser.add_argument("--vh_col", help="Column name for VH sequences in input file", default="VH")
+    parser.add_argument("--vl_col", help="Column name for VL sequences in input file", default="VL")
+    parser.add_argument("--config", help="Path to config file", default=None)
+    parser.add_argument("-a", "--aligned", help="Input sequences are prealigned to 200 KASearch positions", default=False, action="store_true")
+    parser.add_argument("-o", "--output", help="Output save path - defaults to the same dir as input", default=None)
+    parser.add_argument("-v", "--verbose", help="Verbose output flag", default=False, action="store_true")
+    args = parser.parse_args()
+
+    # show help menu if no options given
+    if len(sys.argv) <= 1:
+        parser.print_help()
+        sys.exit(0)
+
+    # check input provided is OK
+    if args.VH is None and args.VL is None and args.input is None:
+        raise ValueError("Must provide either VH, VL, or input file")
+    if args.VH is not None or args.VL is not None:
+        if args.input is not None:
+            raise ValueError("Cannot provide input file if VH or VL is given")
+    if (args.VH is None and args.VL is not None) or (args.VH is not None and args.VL is None):
+        raise ValueError("Humatch humanisation requires both VH and VL sequences")
+    if args.input is not None and (args.vh_col not in pd.read_csv(args.input).columns or args.vl_col not in pd.read_csv(args.input).columns):
+        raise ValueError(f"Humatch humanisation requires both VH and VL sequences. Could not find columns '{args.vh_col}' and '{args.vl_col}' in input file. Column names can be changed with --vh_col and --vl_col")
+        
+    # load default config if not given
+    config = CONFIG if args.config is None else args.config
+    with open(config) as f:
+        config = yaml.safe_load(f)
+    if args.verbose:
+        print(f"\nConfig:")
+        print(pd.DataFrame.from_dict(config, orient="index", columns=["Value"]))
+
+    # get sequences
+    H_seqs, L_seqs = [args.VH] if args.VH else [], [args.VL] if args.VL else []
+    vh_col, vl_col = args.vh_col, args.vl_col
+    if args.input: df = pd.read_csv(args.input); H_seqs.extend(df[vh_col].tolist() if vh_col in df.columns else []); L_seqs.extend(df[vl_col].tolist() if vl_col in df.columns else [])
+
+    # align
+    if not args.aligned:
+        if args.verbose:
+            num_seq_info = "" if args.input is None else f" ({len(H_seqs)} VH, {len(L_seqs)} VL)"
+            print(f"\nAligning sequences{num_seq_info}")
+        H_seqs = [get_padded_seq(strip_padding_from_seq(seq)) for seq in H_seqs]
+        L_seqs = [get_padded_seq(strip_padding_from_seq(seq)) for seq in L_seqs]
+    
+    # check if ANARCI failed on any sequences and remove them
+    failed_H_idxs = [i for i, seq in enumerate(H_seqs) if seq == "-"*len(CANONICAL_NUMBERING)]
+    failed_L_idxs = [i for i, seq in enumerate(L_seqs) if seq == "-"*len(CANONICAL_NUMBERING)]
+    all_failed_idxs = list(set(failed_H_idxs + failed_L_idxs))
+    H_seqs = [seq for i, seq in enumerate(H_seqs) if i not in all_failed_idxs]
+    L_seqs = [seq for i, seq in enumerate(L_seqs) if i not in all_failed_idxs]
+    if len(failed_H_idxs) > 0 or len(failed_L_idxs) > 0:
+        print(f"Warning: {len(failed_H_idxs)} VH and {len(failed_L_idxs)} VL sequences could not be numbered by ANARCI")
+
+    # load CNNs
+    if args.verbose: print("Loading CNNs")
+    cnn_heavy = load_cnn(HEAVY_WEIGHTS, "heavy")
+    cnn_light = load_cnn(LIGHT_WEIGHTS, "light")
+    cnn_paired = load_cnn(PAIRED_WEIGHTS, "paired")
+
+    # humanising sequences
+    results = []
+    if args.verbose: print(f"Humanising {len(H_seqs)} sequences")
+    for i, (H_seq, L_seq) in enumerate(zip(H_seqs, L_seqs)):
+        if args.verbose: print(f"\nHumanising sequence {i+1}/{len(H_seqs)}")
+        results.append(humanise(H_seq, L_seq, cnn_heavy, cnn_light, cnn_paired, config, verbose=args.verbose))
+        if args.verbose:
+            for key, val in results[-1].items():
+                if key in ["Humatch_H", "Humatch_L"]: continue
+                val = f"{val:.3f}" if isinstance(val, np.float32) else val
+                print(f"\t{key}:\t{val}")
+
+    # save if output or input provided
+    out_path = args.output if args.output is not None else args.input.replace(".csv", "_Humatch_humanised.csv") if args.input is not None else None
+    if out_path is not None:
+        if args.verbose: print(f"Saving to {out_path}")
+        df_out = pd.DataFrame(results)
+        df_out.to_csv(out_path, index=False)
+    # print output for single Fv if out path not provided (if it has not been printed earlier)
+    else:
+        if not args.verbose and len(results) > 0:
+            print(f"Humanised sequences:\n\t{results[0]['Humatch_H'].replace('-','')}\n\t{results[0]['Humatch_L'].replace('-','')}")
+            for key, val in results[0].items():
+                if key in ["Humatch_H", "Humatch_L"]: continue
+                val = f"{val:.3f}" if isinstance(val, np.float32) else val
+                print(f"\t{key}:\t{val}")

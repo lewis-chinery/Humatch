@@ -9,8 +9,13 @@ setup(
     long_description_content_type='text/markdown',
     maintainer_email='lewis.chinery@dtc.ox.ac.uk',
     include_package_data=True,
-    package_data={'': ['trained_models/*', 'germline_likeness_lookup_arrays/*']},
+    package_data={'': ['trained_models/*', 'germline_likeness_lookup_arrays/*', 'configs/*']},
     packages=find_packages(include=('Humatch', 'Humatch.*')),
+    entry_points={'console_scripts': [
+        'Humatch-align=Humatch.align:command_line_interface',
+        'Humatch-classify=Humatch.classify:command_line_interface',
+        'Humatch-humanise=Humatch.humanise:command_line_interface',
+        ]},
     install_requires=[
         'numpy',
         'pandas',
