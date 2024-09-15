@@ -1,4 +1,5 @@
 import os
+import requests
 import numpy as np
 from Humatch.utils import (
     get_ordered_AA_one_letter_codes,
@@ -9,6 +10,10 @@ from Humatch.utils import (
 # gl arrays added to compiled env package_data
 HUMATCH_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
 GL_DIR = os.path.join(HUMATCH_CODE_DIR, "germline_likeness_lookup_arrays")
+if not os.path.exists(GL_DIR):
+    os.makedirs(GL_DIR)
+vgenes = [f"hv{i}" for i in range(1, 8)] + [f"lv{i}" for i in range(1, 11)] + [f"kv{i}" for i in range(1, 8)]
+gl_urls = {gene: f"https://zenodo.org/records/13764771/files/{gene}.npy?download=1" for gene in vgenes}
 
 
 def mutate_seq_to_match_germline_likeness(seq, target_gene, target_score, allow_CDR_mutations=False,
@@ -49,7 +54,15 @@ def load_observed_position_AA_freqs(target_gene, germline_likeness_lookup_arrays
     :param target_gene: str, target gene e.g. "hv1", "lv3", "kv6" etc.
     :return: np.array, observed position AA frequencies, shape (200, 20)
     '''
-    return np.load(os.path.join(germline_likeness_lookup_arrays_dir, f"{target_gene}.npy"))
+    lookup_arr = os.path.join(germline_likeness_lookup_arrays_dir, f"{target_gene}.npy")
+    if not os.path.exists(lookup_arr):
+        print(f"Downloading germline lookup arrays for all V-genes from https://zenodo.org/records/13764771... ", end="")
+        for gene, url in gl_urls.items():
+            r = requests.get(url)
+            with open(os.path.join(germline_likeness_lookup_arrays_dir, f"{gene}.npy"), 'wb') as f:
+                f.write(r.content)
+        print("done")
+    return np.load(lookup_arr)
 
 
 def get_list_of_occurence_freqs_for_seq_based_on_gene_arr(seq, arr):

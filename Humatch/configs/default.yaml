@@ -9,7 +9,7 @@ GL_allow_CDR_mutations_H:     False
 GL_fixed_imgt_positions_H:    []
 CNN_target_score_H:           0.95
 CNN_allow_CDR_mutations_H:    False
-CNN_fixed_imgt_positions_H:   []
+CNN_fixed_imgt_positions_H:   []  # e.g. ["1 ", "81 ", "81A", "120 "] <-- spaces are important
 # target_gene_H:                hv3
 
 # light

@@ -1,4 +1,5 @@
 import os
+import requests
 from tensorflow import keras
 from Humatch.utils import HEAVY_V_GENE_CLASSES, LIGHT_V_GENE_CLASSES, PAIRED_CLASSES
 
@@ -6,9 +7,16 @@ from Humatch.utils import HEAVY_V_GENE_CLASSES, LIGHT_V_GENE_CLASSES, PAIRED_CLA
 # cnn weights added to compiled env package_data
 HUMATCH_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
 CNN_WEIGHTS_DIR = os.path.join(HUMATCH_CODE_DIR, "trained_models")
+if not os.path.exists(CNN_WEIGHTS_DIR):
+    os.makedirs(CNN_WEIGHTS_DIR)
 HEAVY_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "heavy.weights.h5")
 LIGHT_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "light.weights.h5")
 PAIRED_WEIGHTS = os.path.join(CNN_WEIGHTS_DIR, "paired.weights.h5")
+model_urls = {
+    "heavy":  "https://zenodo.org/records/13764771/files/heavy.weights.h5?download=1",
+    "light":  "https://zenodo.org/records/13764771/files/light.weights.h5?download=1",
+    "paired": "https://zenodo.org/records/13764771/files/paired.weights.h5?download=1",
+}
 
 
 # default params
@@ -95,10 +103,26 @@ def load_cnn(weights, cnn_type, params=PARAMS):
     '''
     if cnn_type == "heavy":
         seq_len, out_dim = SEQ_LEN, len(HEAVY_V_GENE_CLASSES)
+        # check if weights file exists and download if not
+        if not os.path.exists(weights):
+            print(f"Downloading {cnn_type} model weights from {model_urls[cnn_type]}... ", end="")
+            r = requests.get(model_urls[cnn_type], allow_redirects=True)
+            open(weights, 'wb').write(r.content)
+            print("done")
     elif cnn_type == "light":
         seq_len, out_dim = SEQ_LEN, len(LIGHT_V_GENE_CLASSES)
+        if not os.path.exists(weights):
+            print(f"Downloading {cnn_type} model weights from {model_urls[cnn_type]}... ", end="")
+            r = requests.get(model_urls[cnn_type], allow_redirects=True)
+            open(weights, 'wb').write(r.content)
+            print("done")
     elif cnn_type == "paired":
         seq_len, out_dim = SEQ_LEN*2+PAD_LEN, len(PAIRED_CLASSES)
+        if not os.path.exists(weights):
+            print(f"Downloading {cnn_type} model weights from {model_urls[cnn_type]}... ", end="")
+            r = requests.get(model_urls[cnn_type], allow_redirects=True)
+            open(weights, 'wb').write(r.content)
+            print("done")
     else:
         raise ValueError("cnn_type must be heavy | light | paired")
     
