@@ -34,6 +34,8 @@ Specific python versions can be used to initiate the environment using e.g. ```/
 
 CNN weights and germline likeness lookup arrays are automatically downloaded from <a href="https://zenodo.org/records/13764770">zenodo.org/records/13764770</a> when Humatch is first run.
 
+<span style="color:red">If you have issues with the auto downloads</span> then the 3 weights (.h5) files and 24 germline likeness lookup arrays (.npy) files can be manually downloaded and saved in ```Humatch/Humatch/trained_models``` and ```Humatch/Humatch/germline_likeness_lookup_arrays``` respectively. Once these files are downloaded and saved in the right folders, please rerun the ```pip install .``` command to add these files to Humatch's package data. 
+
 
 ## Humanness classification
 
@@ -162,3 +164,15 @@ Humatch-align
 ```
 
 This can be run with the ```--imgt_cols``` flag to return unique columns for each IMGT position, otherwise only two columns are returned - padded VH and VL. If csvs are pre-aligned (without the ```--imgt_cols``` flag), the alignment step can be avoided during classification and humanisation by including the ```--aligned``` flag.
+
+## Citation
+
+```
+@article{Chinery2024,
+  title = {Humatch - fast, gene-specific joint humanisation of antibody heavy and light chains},
+  author = {Lewis Chinery, Jeliazko R Jeliazkov, and Charlotte M Deane},
+  journal = {bioRxiv},
+  year = {2024},
+  doi = {10.1101/2024.09.16.613210}
+}
+```
