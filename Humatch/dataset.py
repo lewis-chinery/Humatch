@@ -35,7 +35,11 @@ class CustomDataGenerator(tf.keras.utils.Sequence):
         low_idx = index*self.batch_size
         high_idx = min((index+1)*self.batch_size, len(self.seqs))
         batch_seqs = self.seqs[low_idx:high_idx]
-        return get_X_from_list_of_seq_strs(batch_seqs, self.num_cpus)
+        X = get_X_from_list_of_seq_strs(batch_seqs, self.num_cpus)
+        if X.dtype != np.float64:
+            X = X.astype(np.float64)
+        
+        return (X,)
     
 
 def get_X_from_list_of_seq_strs(seq_strs, num_cpus=None):
