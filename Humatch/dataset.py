@@ -7,7 +7,7 @@ from Humatch.utils import seq_to_2D_kidera
 
 class CustomDataGenerator(tf.keras.utils.Sequence):
     '''
-    Custom generator is required for sparse data input to keras model
+    Custom generator for batch training/eval with Kidera encoded sequences
     tf.keras.utils.Sequence allows multiprocessing in safe way (won't train on same batch twice)
 
     :param seqs: list of aligned sequence strings

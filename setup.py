@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='Humatch',
-    version='1.0.0',
+    version='1.0.1',
     description='Fast, gene-specific joint humanisation of antibody heavy and light chains.',
     license='BSD 3-clause license',
     maintainer='Lewis Chinery',
@@ -17,17 +17,15 @@ setup(
         'Humatch-humanise=Humatch.humanise:command_line_interface',
         ]},
     install_requires=[
-        'numpy',
-        'pandas',
-        'ipykernel',
-        'tensorflow',
-        'scikit-learn',
+        'numpy>=1.26.4',
+        'pandas>=2.2.3',
+        'ipykernel>=6.29.5',
+        'tensorflow>=2.17.0',
+        'scikit-learn>=1.5.2',
         'seaborn',
         'matplotlib',
-        'tqdm',
-        'sparse',
-        'pyyaml',
-        'biopython',
-        'hmmer',
+        'pyyaml>=6.0.2',
+        'biopython>=1.84',  # for anarci numbering
+        'hmmer>=3.4.0.0',   # for anarci numbering
     ],
 )
