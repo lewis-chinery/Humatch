@@ -26,6 +26,6 @@ setup(
         'matplotlib',
         'pyyaml>=6.0.2',
         'biopython>=1.84',  # for anarci numbering
-        'hmmer>=3.4.0.0',   # for anarci numbering
+        'hmmer==3.4.0.0',   # for anarci numbering
     ],
 )
